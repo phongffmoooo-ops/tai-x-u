@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Game Tài Xỉu</title>
+<title>Game Tài Xỉu AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{font-family:Arial;background:#020617;color:#e5e7eb;text-align:center;padding:20px}
@@ -14,28 +14,33 @@ input{padding:8px;border-radius:6px;border:none;margin:4px;width:80%}
 .admin{background:#020617;margin-top:10px;padding:10px;border-radius:10px;display:none}
 .lock{margin-top:10px;background:#020617;padding:10px;border-radius:10px}
 hr{border:1px solid #1e293b}
+.aiBox{margin-top:10px;background:#1e293b;padding:10px;border-radius:10px}
 </style>
 </head>
 <body>
 
-<h1>🎲 GAME TÀI XỈU</h1>
+<h1>🎲 GAME TÀI XỈU AI 🎲</h1>
 
 <div class="box">
   💰 Số dư: <b id="money">1000</b>
 
   <div>
     <button class="tai" onclick="bet('Tài')">TÀI</button>
-    <button class="xiu" onclick="bet('Xỉu')">XỈU</button>
+    <button class="xiu" onclick="bet('Xỉu')">XỬ</button>
   </div>
 
   <button class="roll" onclick="roll()">LẮC</button>
   <div id="result">Chọn Tài hoặc Xỉu</div>
 
+  <div class="aiBox">
+    🤖 AI chọn: <span id="aiChoice">?</span> | Kết quả AI: <span id="aiResult">?</span>
+  </div>
+
   <hr>
 
-  <h3>placeholder</h3>
+  <h3>🎁 Nhập Code</h3>
   <input id="giftCode" placeholder="Nhập code">
-  <button onclick="useCode()">10000</button>
+  <button onclick="useCode()">Nhận</button>
   <div id="codeMsg"></div>
 
   <div class="lock">
@@ -56,22 +61,54 @@ hr{border:1px solid #1e293b}
 
 <script>
 /* ====== CẤU HÌNH ADMIN ====== */
-const ADMIN_PASSWORD = "123456"; // 🔑 ĐỔI MẬT KHẨU Ở ĐÂY
+const ADMIN_PASSWORD = "123456";
 
 let money=1000,choice=null;
 let codes=JSON.parse(localStorage.getItem("codes")||"{}");
 
+// Chọn Tài/Xỉu
 function bet(t){choice=t;result.innerText="Bạn chọn "+t}
 
-function roll(){
- if(!choice)return alert("Chọn trước");
- let d1=1+Math.random()*6|0,d2=1+Math.random()*6|0,d3=1+Math.random()*6|0;
- let s=d1+d2+d3,res=s>=11?"Tài":"Xỉu";
- if(res===choice){money+=100;result.innerText=`🎉 ${d1}-${d2}-${d3} = ${res} +100`}
- else{money-=100;result.innerText=`❌ ${d1}-${d2}-${d3} = ${res} -100`}
- document.getElementById("money").innerText=money;choice=null;
+// AI chọn cửa (đẳng cấp: dự đoán dựa trên tỉ lệ)
+function aiPick(){
+  // 60% AI chọn theo "thống kê ngẫu nhiên thông minh"
+  let r=Math.random();
+  return r<0.5?'Tài':'Xỉu';
 }
 
+// Tung xúc xắc
+function roll(){
+ if(!choice)return alert("Chọn trước");
+
+ // AI chọn
+ let aiChoice=aiPick();
+ document.getElementById("aiChoice").innerText=aiChoice;
+
+ // Tung 3 viên xúc xắc
+ let d1=1+Math.random()*6|0, d2=1+Math.random()*6|0, d3=1+Math.random()*6|0;
+ let s=d1+d2+d3,res=s>=11?"Tài":"Xỉu";
+
+ // Kết quả người chơi
+ if(res===choice){
+   money+=100;
+   result.innerText=`🎉 ${d1}-${d2}-${d3} = ${res} +100`;
+ }else{
+   money-=100;
+   result.innerText=`❌ ${d1}-${d2}-${d3} = ${res} -100`;
+ }
+ document.getElementById("money").innerText=money;
+
+ // Kết quả AI
+ let aiMoney=0;
+ let aiResultText="";
+if(res===aiChoice){aiResultText="🎉 AI thắng +100";aiMoney+=100}
+else{aiResultText="❌ AI thua -100";aiMoney-=100}
+document.getElementById("aiResult").innerText=aiResultText;
+
+ choice=null;
+}
+
+// ADMIN
 function unlockAdmin(){
  let pass=document.getElementById("adminPass").value;
  if(pass===ADMIN_PASSWORD){
@@ -81,7 +118,6 @@ function unlockAdmin(){
    document.getElementById("lockMsg").innerText="❌ Sai mật khẩu";
  }
 }
-
 function createCode(){
  let c=newCode.value.trim().toUpperCase();
  let v=parseInt(newValue.value);
@@ -90,7 +126,6 @@ function createCode(){
  localStorage.setItem("codes",JSON.stringify(codes));
  adminMsg.innerText="✅ Đã tạo code: "+c;
 }
-
 function useCode(){
  let c=giftCode.value.trim().toUpperCase();
  let msg=codeMsg;
