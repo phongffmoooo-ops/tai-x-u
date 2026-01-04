@@ -2,155 +2,107 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Tài Xỉu Casino</title>
+<title>Game Tài Xỉu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family: 'Segoe UI',sans-serif;
-  background: radial-gradient(circle,#020617,#000);
-  color:#fff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.game{
-  background:#020617;
-  border-radius:20px;
-  padding:30px;
-  width:360px;
-  box-shadow:0 0 30px rgba(0,255,255,.15);
-}
-h1{text-align:center;margin-bottom:10px}
-.money{
-  text-align:center;
-  margin-bottom:15px;
-  font-size:18px;
-}
-.dice{
-  display:flex;
-  justify-content:center;
-  font-size:50px;
-  margin:20px 0;
-  letter-spacing:10px;
-  animation:shake .5s;
-}
-@keyframes shake{
-  0%{transform:translateX(0)}
-  25%{transform:translateX(-5px)}
-  50%{transform:translateX(5px)}
-  75%{transform:translateX(-5px)}
-  100%{transform:translateX(0)}
-}
-.bet{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin-bottom:15px;
-}
-.bet button{
-  background:#1e293b;
-  color:white;
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-}
-.bet span{
-  font-size:18px;
-  min-width:80px;
-  text-align:center;
-}
-.play{
-  display:flex;
-  justify-content:space-between;
-}
-.play button{
-  width:48%;
-  padding:12px;
-  font-size:18px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-}
-.tai{background:#22c55e}
-.xiu{background:#ef4444}
-.result{
-  text-align:center;
-  margin-top:15px;
-  min-height:24px;
-}
-.footer{
-  text-align:center;
-  font-size:12px;
-  opacity:.6;
-  margin-top:10px;
-}
+body{font-family:Arial;background:#020617;color:#e5e7eb;text-align:center;padding:20px}
+h1{color:#38bdf8}
+.box{max-width:420px;margin:auto;background:#0f172a;padding:16px;border-radius:14px}
+button{padding:10px 14px;margin:4px;border:none;border-radius:8px;cursor:pointer}
+.tai{background:#22c55e}.xiu{background:#ef4444;color:#fff}.roll{background:#38bdf8}
+input{padding:8px;border-radius:6px;border:none;margin:4px;width:80%}
+.admin{background:#020617;margin-top:10px;padding:10px;border-radius:10px;display:none}
+.lock{margin-top:10px;background:#020617;padding:10px;border-radius:10px}
+hr{border:1px solid #1e293b}
 </style>
 </head>
-
 <body>
-<div class="game">
-  <h1>🎲 TÀI XỈU 🎲</h1>
-  <div class="money">💰 Tiền: <b id="money">1000</b></div>
 
-  <div class="dice" id="dice">⚀ ⚀ ⚀</div>
+<h1>🎲 GAME TÀI XỈU</h1>
 
-  <div class="bet">
-    <button onclick="changeBet(-100)">-100</button>
-    <span>🎯 <b id="bet">100</b></span>
-    <button onclick="changeBet(100)">+100</button>
+<div class="box">
+  💰 Số dư: <b id="money">1000</b>
+
+  <div>
+    <button class="tai" onclick="bet('Tài')">TÀI</button>
+    <button class="xiu" onclick="bet('Xỉu')">XỈU</button>
   </div>
 
-  <div class="play">
-    <button class="tai" onclick="play('tai')">TÀI</button>
-    <button class="xiu" onclick="play('xiu')">XỈU</button>
+  <button class="roll" onclick="roll()">LẮC</button>
+  <div id="result">Chọn Tài hoặc Xỉu</div>
+
+  <hr>
+
+  <h3>🎁 Nhập Code</h3>
+  <input id="giftCode" placeholder="Nhập code">
+  <button onclick="useCode()">Nhận</button>
+  <div id="codeMsg"></div>
+
+  <div class="lock">
+    <h3>🔒 Admin</h3>
+    <input id="adminPass" type="password" placeholder="Nhập mật khẩu">
+    <button onclick="unlockAdmin()">Mở khóa</button>
+    <div id="lockMsg"></div>
   </div>
 
-  <div class="result" id="result"></div>
-  <div class="footer">Casino Demo • GitHub Pages</div>
+  <div class="admin" id="adminBox">
+    <h3>👑 Tạo Code</h3>
+    <input id="newCode" placeholder="Tên code">
+    <input id="newValue" type="number" placeholder="Tiền thưởng">
+    <button onclick="createCode()">Tạo code</button>
+    <div id="adminMsg"></div>
+  </div>
 </div>
 
 <script>
-let money = 1000;
-let bet = 100;
+/* ====== CẤU HÌNH ADMIN ====== */
+const ADMIN_PASSWORD = "123456"; // 🔑 ĐỔI MẬT KHẨU Ở ĐÂY
 
-function changeBet(v){
-  bet = Math.max(100, bet + v);
-  document.getElementById('bet').innerText = bet;
+let money=1000,choice=null;
+let codes=JSON.parse(localStorage.getItem("codes")||"{}");
+
+function bet(t){choice=t;result.innerText="Bạn chọn "+t}
+
+function roll(){
+ if(!choice)return alert("Chọn trước");
+ let d1=1+Math.random()*6|0,d2=1+Math.random()*6|0,d3=1+Math.random()*6|0;
+ let s=d1+d2+d3,res=s>=11?"Tài":"Xỉu";
+ if(res===choice){money+=100;result.innerText=`🎉 ${d1}-${d2}-${d3} = ${res} +100`}
+ else{money-=100;result.innerText=`❌ ${d1}-${d2}-${d3} = ${res} -100`}
+ document.getElementById("money").innerText=money;choice=null;
 }
 
-function play(choice){
-  if(money < bet){
-    document.getElementById('result').innerText = '❌ Không đủ tiền';
-    return;
-  }
-
-  let d1 = rand(), d2 = rand(), d3 = rand();
-  let sum = d1 + d2 + d3;
-  let kq = sum >= 11 ? 'tai' : 'xiu';
-
-  document.getElementById('dice').innerText =
-    diceIcon(d1)+' '+diceIcon(d2)+' '+diceIcon(d3);
-
-  if(choice === kq){
-    money += bet;
-    document.getElementById('result').innerText =
-      `🎉 THẮNG (${sum})`;
-  }else{
-    money -= bet;
-    document.getElementById('result').innerText =
-      `💀 THUA (${sum})`;
-  }
-
-  document.getElementById('money').innerText = money;
+function unlockAdmin(){
+ let pass=document.getElementById("adminPass").value;
+ if(pass===ADMIN_PASSWORD){
+   document.getElementById("adminBox").style.display="block";
+   document.getElementById("lockMsg").innerText="✅ Mở khóa thành công";
+ }else{
+   document.getElementById("lockMsg").innerText="❌ Sai mật khẩu";
+ }
 }
 
-function rand(){ return Math.floor(Math.random()*6)+1; }
-function diceIcon(n){
-  return ['','⚀','⚁','⚂','⚃','⚄','⚅'][n];
+function createCode(){
+ let c=newCode.value.trim().toUpperCase();
+ let v=parseInt(newValue.value);
+ if(!c||!v)return;
+ codes[c]={value:v,used:false};
+ localStorage.setItem("codes",JSON.stringify(codes));
+ adminMsg.innerText="✅ Đã tạo code: "+c;
+}
+
+function useCode(){
+ let c=giftCode.value.trim().toUpperCase();
+ let msg=codeMsg;
+ if(!codes[c]){msg.innerText="❌ Code không tồn tại";return}
+ if(codes[c].used){msg.innerText="⚠️ Code đã dùng";return}
+ money+=codes[c].value;
+ codes[c].used=true;
+ localStorage.setItem("codes",JSON.stringify(codes));
+ document.getElementById("money").innerText=money;
+ msg.innerText="🎉 Nhận +" + codes[c].value;
 }
 </script>
+
 </body>
 </html>
