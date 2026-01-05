@@ -2,142 +2,198 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Game Tài Xỉu AI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎲 Tài Xỉu + AI + Phiếu + Admin 🎲</title>
 <style>
-body{font-family:Arial;background:#020617;color:#e5e7eb;text-align:center;padding:20px}
-h1{color:#38bdf8}
-.box{max-width:420px;margin:auto;background:#0f172a;padding:16px;border-radius:14px}
-button{padding:10px 14px;margin:4px;border:none;border-radius:8px;cursor:pointer}
-.tai{background:#22c55e}.xiu{background:#ef4444;color:#fff}.roll{background:#38bdf8}
-input{padding:8px;border-radius:6px;border:none;margin:4px;width:80%}
-.admin{background:#020617;margin-top:10px;padding:10px;border-radius:10px;display:none}
-.lock{margin-top:10px;background:#020617;padding:10px;border-radius:10px}
-hr{border:1px solid #1e293b}
-.aiBox{margin-top:10px;background:#1e293b;padding:10px;border-radius:10px}
+body { text-align: center; font-family: Arial, sans-serif; background: linear-gradient(to bottom, #f0f8ff, #a0d8f1); margin: 0; padding: 20px;}
+h1 { font-size: 2em; margin-bottom: 20px; }
+#cup { width: 120px; height: 120px; background: brown; border-radius: 50%; margin: 20px auto; cursor: pointer; position: relative; transition: transform 0.5s, top 0.5s; }
+#cup.flip { transform: rotateX(180deg); top: 50px; }
+#dice, #aiDice { font-size: 50px; display: flex; justify-content: center; gap: 10px; margin: 20px; min-height: 60px; }
+#aiDice { color: red; }
+button { padding: 8px 16px; font-size: 14px; cursor: pointer; margin: 4px; border-radius: 5px; border: none; background: #4caf50; color: white; transition: background 0.3s; }
+button:hover { background: #45a049; }
+#timer { font-size: 18px; margin-top: 10px; }
+#result { font-size: 20px; font-weight: bold; margin-top: 10px; color: #333; }
+input, select { padding: 6px; font-size: 14px; border-radius: 5px; border: 1px solid #ccc; margin-top: 5px; }
+.select-reward, #adminSection { margin-top: 10px; }
+#inventory, #vouchers { margin-top: 20px; font-size: 16px; color: #222; text-align: left; display:inline-block; }
+.voucher-btn { background: #ff9800; margin: 2px; }
+.admin-section { background:#f9f9f9; border:1px solid #ccc; padding:10px; border-radius:8px; margin-top:20px; display:inline-block; }
+.code-list { margin-top:10px; max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:5px; }
+@keyframes jump { 0%{transform:translateY(0);}25%{transform:translateY(-20px);}50%{transform:translateY(0);}75%{transform:translateY(-10px);}100%{transform:translateY(0);} }
+.dice-jump { animation: jump 0.5s; }
 </style>
 </head>
 <body>
 
-<h1>🎲 GAME TÀI XỈU AI 🎲</h1>
+<h1>🎲 Tài Xỉu + AI + Phiếu + Admin 🎲</h1>
+<p>Bấm vào chén để lắc 3 viên xúc xắc! AI sẽ cạnh tranh với bạn.</p>
 
-<div class="box">
-  💰 Số dư: <b id="money">1000</b>
+<div id="cup"></div>
+<div id="dice"></div>
+<div id="aiDice"></div>
 
-  <div>
-    <button class="tai" onclick="bet('Tài')">TÀI</button>
-    <button class="xiu" onclick="bet('Xỉu')">XỬ</button>
-  </div>
+<button id="startBtn">Bắt đầu xúc xí ngầu (1 phút)</button>
+<p id="timer"></p>
+<p id="result"></p>
 
-  <button class="roll" onclick="roll()">LẮC</button>
-  <div id="result">Chọn Tài hoặc Xỉu</div>
+<!-- Nhập code -->
+<div>
+    <input type="text" id="giftCode" placeholder="Nhập code nhận quà">
+    <button id="checkCodeBtn">Nhận quà</button>
+</div>
+<div class="select-reward" id="rewardSelect" style="display:none;">
+    <p>Chọn quà bạn thích:</p>
+    <button class="rewardBtn" data-type="money">💰 Tiền</button>
+    <button class="rewardBtn" data-type="points">⭐ Điểm thưởng</button>
+    <button class="rewardBtn" data-type="item">🎁 Vật phẩm ảo</button>
+</div>
+<p id="giftResult" style="font-weight:bold; margin-top:10px;"></p>
 
-  <div class="aiBox">
-    🤖 AI chọn: <span id="aiChoice">?</span> | Kết quả AI: <span id="aiResult">?</span>
-  </div>
+<!-- Inventory -->
+<div id="inventory">
+    <p>💰 Tiền: <span id="money">0</span></p>
+    <p>⭐ Điểm thưởng: <span id="points">0</span></p>
+    <p>🎁 Vật phẩm ảo: <span id="items">0</span></p>
+</div>
 
-  <hr>
+<!-- Phiếu quà -->
+<div id="vouchers">
+    <p>📜 Phiếu quà:</p>
+    <div id="voucherList"></div>
+</div>
 
-  <h3>🎁 Nhập Code</h3>
-  <input id="giftCode" placeholder="Nhập code">
-  <button onclick="useCode()">Nhận</button>
-  <div id="codeMsg"></div>
+<!-- Admin Panel -->
+<div id="adminSection" class="admin-section">
+    <button id="openAdminBtn">🔑 Mở Admin Panel</button>
+    <div id="adminPanelContent" style="display:none;">
+        <h3>⚙️ Admin Panel</h3>
+        <p>Thêm code mới:</p>
+        <input type="text" id="newCode" placeholder="Code mới">
+        <select id="newCodeType">
+            <option value="money">💰 Tiền</option>
+            <option value="points">⭐ Điểm</option>
+            <option value="item">🎁 Vật phẩm</option>
+            <option value="voucherMoney">📜 Phiếu Tiền</option>
+            <option value="voucherPoints">📜 Phiếu Điểm</option>
+            <option value="voucherItem">📜 Phiếu Vật phẩm</option>
+        </select>
+        <input type="number" id="newCodeValue" placeholder="Giá trị" min="1">
+        <button id="addCodeBtn">Thêm Code</button>
 
-  <div class="lock">
-    <h3>🔒 Admin</h3>
-    <input id="adminPass" type="password" placeholder="Nhập mật khẩu">
-    <button onclick="unlockAdmin()">Mở khóa</button>
-    <div id="lockMsg"></div>
-  </div>
-
-  <div class="admin" id="adminBox">
-    <h3>👑 Tạo Code</h3>
-    <input id="newCode" placeholder="Tên code">
-    <input id="newValue" type="number" placeholder="Tiền thưởng">
-    <button onclick="createCode()">Tạo code</button>
-    <div id="adminMsg"></div>
-  </div>
+        <h4>Danh sách code:</h4>
+        <div id="codeList" class="code-list"></div>
+    </div>
 </div>
 
 <script>
-/* ====== CẤU HÌNH ADMIN ====== */
-const ADMIN_PASSWORD = "123456";
+/* ================== HỆ THỐNG ================== */
+let timerId; let timeLeft=60;
+const cup=document.getElementById('cup'); const diceDiv=document.getElementById('dice'); const aiDiceDiv=document.getElementById('aiDice');
+const timerText=document.getElementById('timer'); const resultText=document.getElementById('result');
+const inventoryMoney=document.getElementById('money'); const inventoryPoints=document.getElementById('points'); const inventoryItems=document.getElementById('items');
+const voucherList=document.getElementById('voucherList');
+const giftCodeInput=document.getElementById('giftCode'); const checkCodeBtn=document.getElementById('checkCodeBtn');
+const rewardSelect=document.getElementById('rewardSelect'); const giftResult=document.getElementById('giftResult');
 
-let money=1000,choice=null;
-let codes=JSON.parse(localStorage.getItem("codes")||"{}");
+const diceFaces=['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
 
-// Chọn Tài/Xỉu
-function bet(t){choice=t;result.innerText="Bạn chọn "+t}
+// Lưu trữ
+let inventory=JSON.parse(localStorage.getItem("inventory")||'{"money":0,"points":0,"items":0}');
+let vouchers=JSON.parse(localStorage.getItem("vouchers")||'[]');
+let codes=JSON.parse(localStorage.getItem("codes")||'[]'); // {code,type,value,used}
 
-// AI chọn cửa (đẳng cấp: dự đoán dựa trên tỉ lệ)
-function aiPick(){
-  // 60% AI chọn theo "thống kê ngẫu nhiên thông minh"
-  let r=Math.random();
-  return r<0.5?'Tài':'Xỉu';
+// Cập nhật hiển thị
+function saveAll(){localStorage.setItem("inventory",JSON.stringify(inventory)); localStorage.setItem("vouchers",JSON.stringify(vouchers)); localStorage.setItem("codes",JSON.stringify(codes));}
+function updateInventory(){inventoryMoney.textContent=inventory.money;inventoryPoints.textContent=inventory.points;inventoryItems.textContent=inventory.items;}
+function updateVouchers(){voucherList.innerHTML=''; vouchers.forEach((v,i)=>{ let btn=document.createElement('button'); btn.textContent=`${v.type} +${v.value}`; btn.className='voucher-btn'; btn.onclick=()=>{useVoucher(i);}; voucherList.appendChild(btn);});}
+function updateCodeList(){ const list=document.getElementById('codeList'); list.innerHTML=''; codes.forEach(c=>{ const div=document.createElement('div'); div.textContent=`${c.code} | ${c.type} +${c.value} | ${c.used?'Đã dùng':'Chưa dùng'}`; list.appendChild(div); }); }
+updateInventory(); updateVouchers(); updateCodeList();
+
+/* ================== Phiếu ================== */
+function useVoucher(index){
+    const v=vouchers[index];
+    if(v.type==='Tiền') inventory.money+=v.value;
+    if(v.type==='Điểm') inventory.points+=v.value;
+    if(v.type==='Vật phẩm') inventory.items+=v.value;
+    vouchers.splice(index,1); saveAll(); updateInventory(); updateVouchers();
+    alert(`Bạn đã sử dụng phiếu ${v.type} +${v.value}`);
 }
 
-// Tung xúc xắc
-function roll(){
- if(!choice)return alert("Chọn trước");
+/* ================== Game & AI ================== */
+function rollOneDice(){ return diceFaces[Math.floor(Math.random()*6)]; }
+function rollThreeDice(){ const dice=[rollOneDice(),rollOneDice(),rollOneDice()]; const points=dice.map(d=>diceFaces.indexOf(d)+1); return {dice,points,sum:points.reduce((a,b)=>a+b,0)}; }
+function aiRoll(playerSum){ const rnd=Math.random(); let aiSum; if(rnd<0.3) aiSum=playerSum+Math.floor(Math.random()*3+1); else if(rnd<0.6) aiSum=playerSum-Math.floor(Math.random()*3+1); else aiSum=playerSum; if(aiSum<3) aiSum=3; if(aiSum>18) aiSum=18; const dices=[]; let remaining=aiSum; for(let i=0;i<3;i++){ let val=Math.min(Math.max(1,Math.floor(Math.random()*6)),remaining-(2-i)); dices.push(val); remaining-=val;} return {dice:dices.map(v=>diceFaces[v-1]),sum:aiSum};}
 
- // AI chọn
- let aiChoice=aiPick();
- document.getElementById("aiChoice").innerText=aiChoice;
+startBtn.onclick=()=>{timeLeft=60; resultText.textContent=''; diceDiv.textContent=''; aiDiceDiv.textContent=''; timerText.textContent=`Thời gian còn lại: ${timeLeft}s`; clearInterval(timerId); timerId=setInterval(()=>{timeLeft--; timerText.textContent=`Thời gian còn lại: ${timeLeft}s`; if(timeLeft<=0){clearInterval(timerId); alert('Hết giờ xúc xí ngầu!');}},1000);}
 
- // Tung 3 viên xúc xắc
- let d1=1+Math.random()*6|0, d2=1+Math.random()*6|0, d3=1+Math.random()*6|0;
- let s=d1+d2+d3,res=s>=11?"Tài":"Xỉu";
-
- // Kết quả người chơi
- if(res===choice){
-   money+=100;
-   result.innerText=`🎉 ${d1}-${d2}-${d3} = ${res} +100`;
- }else{
-   money-=100;
-   result.innerText=`❌ ${d1}-${d2}-${d3} = ${res} -100`;
- }
- document.getElementById("money").innerText=money;
-
- // Kết quả AI
- let aiMoney=0;
- let aiResultText="";
-if(res===aiChoice){aiResultText="🎉 AI thắng +100";aiMoney+=100}
-else{aiResultText="❌ AI thua -100";aiMoney-=100}
-document.getElementById("aiResult").innerText=aiResultText;
-
- choice=null;
+cup.onclick=()=>{
+    if(timeLeft<=0){alert('Đã hết giờ! Bấm "Bắt đầu" để chơi lại.'); return;}
+    cup.classList.add('flip'); diceDiv.innerHTML=''; aiDiceDiv.innerHTML='';
+    for(let i=0;i<3;i++){ let span=document.createElement('span'); span.textContent=rollOneDice(); span.classList.add('dice-jump'); diceDiv.appendChild(span);}
+    for(let i=0;i<3;i++){ let span=document.createElement('span'); span.textContent=rollOneDice(); span.classList.add('dice-jump'); aiDiceDiv.appendChild(span);}
+    setTimeout(()=>{
+        cup.classList.remove('flip');
+        const player=rollThreeDice();
+        const ai=aiRoll(player.sum);
+        diceDiv.innerHTML=''; aiDiceDiv.innerHTML='';
+        player.dice.forEach(d=>{ let span=document.createElement('span'); span.textContent=d; diceDiv.appendChild(span);});
+        ai.dice.forEach(d=>{ let span=document.createElement('span'); span.textContent=d; aiDiceDiv.appendChild(span);});
+        const playerResult=(player.sum>=11&&player.sum<=17)?'Tài':'Xỉu';
+        const aiResult=(ai.sum>=11&&ai.sum<=17)?'Tài':'Xỉu';
+        let winner="";
+        if(player.sum>ai.sum) winner="Bạn thắng! 🏆";
+        else if(player.sum<ai.sum) winner="AI thắng! 🤖";
+        else winner="Hòa! ⚖️";
+        resultText.textContent=`Bạn: ${player.sum}→${playerResult} | AI: ${ai.sum}→${aiResult} → ${winner}`;
+    },1000);
 }
 
-// ADMIN
-function unlockAdmin(){
- let pass=document.getElementById("adminPass").value;
- if(pass===ADMIN_PASSWORD){
-   document.getElementById("adminBox").style.display="block";
-   document.getElementById("lockMsg").innerText="✅ Mở khóa thành công";
- }else{
-   document.getElementById("lockMsg").innerText="❌ Sai mật khẩu";
- }
+/* ================== Code quà ================== */
+checkCodeBtn.onclick=()=>{
+    const code=giftCodeInput.value.trim().toUpperCase();
+    const c=codes.find(c=>c.code===code);
+    if(!c){ rewardSelect.style.display='none'; giftResult.textContent="Code không hợp lệ!"; return;}
+    if(c.used){ rewardSelect.style.display='none'; giftResult.textContent="Code đã dùng!"; return;}
+    rewardSelect.style.display='block'; giftResult.textContent="Code hợp lệ! Chọn quà:"; giftCodeInput.dataset.currentCode=code;
 }
-function createCode(){
- let c=newCode.value.trim().toUpperCase();
- let v=parseInt(newValue.value);
- if(!c||!v)return;
- codes[c]={value:v,used:false};
- localStorage.setItem("codes",JSON.stringify(codes));
- adminMsg.innerText="✅ Đã tạo code: "+c;
+
+document.querySelectorAll('.rewardBtn').forEach(btn=>{
+    btn.onclick=()=>{
+        const code=giftCodeInput.dataset.currentCode;
+        if(!code) return;
+        const c=codes.find(c=>c.code===code);
+        if(!c) return;
+        c.used=true;
+        if(c.type==='money'){ inventory.money+=c.value;}
+        if(c.type==='points'){ inventory.points+=c.value;}
+        if(c.type==='item'){ inventory.items+=c.value;}
+        if(c.type==='voucherMoney'){ vouchers.push({type:'Tiền',value:c.value});}
+        if(c.type==='voucherPoints'){ vouchers.push({type:'Điểm',value:c.value});}
+        if(c.type==='voucherItem'){ vouchers.push({type:'Vật phẩm',value:c.value});}
+        saveAll(); updateInventory(); updateVouchers(); updateCodeList();
+        giftResult.textContent=`Bạn nhận được ${c.type} +${c.value}!`; rewardSelect.style.display='none'; giftCodeInput.value=''; giftCodeInput.dataset.currentCode='';
+    }
+});
+
+/* ================== Admin với mật khẩu ================== */
+const openAdminBtn=document.getElementById('openAdminBtn');
+const adminPanelContent=document.getElementById('adminPanelContent');
+openAdminBtn.onclick=()=>{
+    const pwd=prompt("Nhập mật khẩu admin:");
+    if(pwd==="1234567890"){ adminPanelContent.style.display="block"; alert("Chào mừng admin!"); }
+    else alert("Sai mật khẩu!");
 }
-function useCode(){
- let c=giftCode.value.trim().toUpperCase();
- let msg=codeMsg;
- if(!codes[c]){msg.innerText="❌ Code không tồn tại";return}
- if(codes[c].used){msg.innerText="⚠️ Code đã dùng";return}
- money+=codes[c].value;
- codes[c].used=true;
- localStorage.setItem("codes",JSON.stringify(codes));
- document.getElementById("money").innerText=money;
- msg.innerText="🎉 Nhận +" + codes[c].value;
+
+document.getElementById('addCodeBtn').onclick=()=>{
+    const code=document.getElementById('newCode').value.trim().toUpperCase();
+    const type=document.getElementById('newCodeType').value;
+    const value=parseInt(document.getElementById('newCodeValue').value);
+    if(!code || !type || isNaN(value)){ alert('Vui lòng nhập đầy đủ!'); return;}
+    codes.push({code,type,value,used:false}); saveAll(); updateCodeList();
+    alert(`Thêm code ${code} thành công!`); document.getElementById('newCode').value=''; document.getElementById('newCodeValue').value='';
 }
 </script>
-
 </body>
 </html>
+
