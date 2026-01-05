@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>🎮 Game VIP 3.5</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;padding:0;background:#f0f8ff;}
+header{background:#222;color:#fff;padding:10px;text-align:center;font-size:1.3em;}
+nav{display:flex;justify-content:center;gap:5px;margin:10px;}
+nav button{padding:5px 10px;border:none;border-radius:5px;cursor:pointer;background:#0077ff;color:#fff;}
+nav button.active{background:#005bb5;}
+#main{display:flex;}
+#gameArea{flex:3;padding:10px;}
+#aiChat{flex:1;padding:10px;background:#e0e0e0;display:none;max-height:90vh;overflow-y:auto;position:relative;}
+#aiChat h3{margin-top:0;}
+#chatLog{height:60vh;overflow-y:auto;background:#fff;padding:5px;border:1px solid #ccc;margin-bottom:5px;}
+#chatInput{width:calc(100% - 60px);padding:5px;}
+#chatSend{width:50px;padding:5px;}
+#adminMini{position:fixed;top:5px;right:5px;}
+#adminMini input{width:80px;padding:2px;}
+#adminMini button{padding:2px 5px;}
+#adminPanel{display:none;border:1px solid #444;padding:10px;background:#fff;position:fixed;top:40px;right:5px;width:300px;max-height:90vh;overflow:auto;}
+#tabsContent > div{display:none;}
+#tabsContent > div.active{display:block;}
+.cup{width:100px;height:100px;background:brown;border-radius:50%;margin:10px auto;cursor:pointer;position:relative;transition:transform 0.5s;}
+.diceContainer{display:flex;justify-content:center;gap:10px;font-size:40px;min-height:50px;}
+button{transition:0.2s;}
+button:hover{opacity:0.8;}
+.stockItem{display:inline-block;padding:3px 6px;border-radius:3px;margin:2px;color:#fff;}
+.up{background:green;}
+.down{background:red;}
+</style>
+</head>
+<body>
+
+<header>🎮 Game VIP 3.5</header>
+
+<nav>
+  <button class="tabBtn active" data-tab="taixiu">Tài Xỉu</button>
+  <button class="tabBtn" data-tab="cophieu">Cổ Phiếu</button>
+  <button class="tabBtn" data-tab="vongquay">Vòng Quay</button>
+  <button class="tabBtn" data-tab="inventory">Inventory</button>
+</nav>
+
+<div id="main">
+  <div id="gameArea">
+    <div id="tabsContent">
+      
+      <!-- TÀI XỈU -->
+      <div id="taixiu" class="active">
+        <p>Chọn Tài/Xỉu và đặt cược:</p>
+        <button class="betBtn" data-choice="Tài">Tài</button>
+        <button class="betBtn" data-choice="Xỉu">Xỉu</button>
+        <input type="number" id="betAmount" placeholder="VNĐ" value="1000" min="100">
+        <p id="currentBet">Chưa chọn cược</p>
+        <div class="cup" id="cup"></div>
+        <div class="diceContainer" id="playerDice"></div>
+        <div class="diceContainer" id="aiDice"></div>
+        <p id="result"></p>
+        <p>Thống kê cược:</p>
+        <p>Tài: <span id="taiCount">0</span> người, <span id="taiTotal">0</span> VNĐ</p>
+        <p>Xỉu: <span id="xiuCount">0</span> người, <span id="xiuTotal">0</span> VNĐ</p>
+      </div>
+
+      <!-- CỔ PHIẾU -->
+      <div id="cophieu">
+        <h3>📈 Bảng cổ phiếu</h3>
+        <div id="stocks"></div>
+        <h3>💹 Mua/Bán cổ phiếu</h3>
+        <select id="stockSelect"></select>
+        <input type="number" id="stockAmount" placeholder="Số lượng" min="1">
+        <button id="buyStockBtn">Mua</button>
+        <button id="sellStockBtn">Bán</button>
+        <p id="stockMsg"></p>
+        <p>📊 Inventory cổ phiếu: <span id="stockInventory"></span></p>
+      </div>
+
+      <!-- VÒNG QUAY -->
+      <div id="vongquay">
+        <h3>🎡 Vòng quay may mắn (1 lần/code)</h3>
+        <button id="spinBtn">Quay Vòng</button>
+        <p id="spinResult"></p>
+      </div>
+
+      <!-- INVENTORY -->
+      <div id="inventory">
+        <h3>🎁 Inventory</h3>
+        <p>💰 Tiền VNĐ: <span id="money">25000</span></p>
+        <p>⭐ Điểm thưởng: <span id="points">0</span></p>
+        <p>🎁 Vật phẩm: <span id="items">0</span></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AI CHAT (chỉ hiện khi admin bật) -->
+  <div id="aiChat">
+    <h3>🤖 AI Trợ Lý</h3>
+    <div id="chatLog"></div>
+    <input type="text" id="chatInput" placeholder="Gõ tin nhắn...">
+    <button id="chatSend">Gửi</button>
+  </div>
+</div>
+
+<!-- ADMIN MINI -->
+<div id="adminMini">
+  <input type="password" id="adminPwdMini" placeholder="🔑 Admin">
+  <button id="adminLoginBtnMini">OK</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <h3>🎯 Admin Panel</h3>
+  <p>Chức năng: Tạo code, quản lý vòng quay, AI trợ lý</p>
+</div>
+
+<script>
+// -------------------------
+// Biến chung
+let money=25000, points=0, items=0;
+let playerChoice="", playerBet=0;
+let stocks=[{name:'AAA',value:100},{name:'BBB',value:200},{name:'CCC',value:150}];
+let playerStocks={AAA:0, BBB:0, CCC:0};
+let taiCount=0, xiuCount=0, taiTotal=0, xiuTotal=0;
+let aiEnabled=false;
+
+// -------------------------
+// Tabs
+document.querySelectorAll('.tabBtn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.tabBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#tabsContent > div').forEach(d=>d.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  }
+});
+
+// -------------------------
+// Admin mini login
+document.getElementById('adminLoginBtnMini').onclick=()=>{
+  if(document.getElementById('adminPwdMini').value==='1234567890'){
+    document.getElementById('adminPanel').style.display='block';
+    document.getElementById('aiChat').style.display='block';
+    document.getElementById('adminMini').style.display='none';
+    aiEnabled=true;
+    alert('Chào admin! AI Trợ lý đã bật.');
+  } else alert('Sai mật khẩu!');
+};
+
+// -------------------------
+// AI Chat (giao diện đơn giản)
+const chatLog=document.getElementById('chatLog');
+document.getElementById('chatSend').onclick=()=>{
+  const msg=document.getElementById('chatInput').value.trim();
+  if(!msg) return;
+  const userMsg=document.createElement('div'); userMsg.textContent="Bạn: "+msg; chatLog.appendChild(userMsg);
+  document.getElementById('chatInput').value='';
+  if(aiEnabled){
+    setTimeout(()=>{
+      const aiMsg=document.createElement('div'); 
+      aiMsg.textContent="AI: "+generateAIResponse(msg);
+      chatLog.appendChild(aiMsg);
+      chatLog.scrollTop=chatLog.scrollHeight;
+    },300);
+  }
+};
+
+function generateAIResponse(msg){
+  msg=msg.toLowerCase();
+  if(msg.includes("tài")) return `Tài đang có ${taiCount} người cược, tổng ${taiTotal} VNĐ`;
+  if(msg.includes("xỉu")) return `Xỉu đang có ${xiuCount} người cược, tổng ${xiuTotal} VNĐ`;
+  if(msg.includes("cổ phiếu")) return `Cổ phiếu AAA:${stocks[0].value} BBB:${stocks[1].value} CCC:${stocks[2].value}`;
+  return "AI gợi ý: Theo dõi chén, cổ phiếu và vòng quay trước khi cược.";
+}
+
+// -------------------------
+// Tài Xỉu (cơ bản kéo mở chén)
+// Chỉ demo logic, chén click → hiện kết quả
+const cup=document.getElementById('cup');
+cup.onclick=()=>{
+  if(!playerChoice||playerBet<=0){alert('Chọn Tài/Xỉu và nhập tiền cược!'); return;}
+  // Cập nhật thống kê
+  if(playerChoice==="Tài"){taiCount++; taiTotal+=playerBet;} else {xiuCount++; xiuTotal+=playerBet;}
+  document.getElementById('taiCount').textContent=taiCount;
+  document.getElementById('taiTotal').textContent=taiTotal;
+  document.getElementById('xiuCount').textContent=xiuCount;
+  document.getElementById('xiuTotal').textContent=xiuTotal;
+  // Roll dice
+  let faces=['\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
+  let roll = ()=>faces[Math.floor(Math.random()*6)];
+  let playerDice=[roll(),roll(),roll()];
+  let aiDice=[roll(),roll(),roll()];
+  document.getElementById('playerDice').textContent=playerDice.join(' ');
+  document.getElementById('aiDice').textContent=aiDice.join(' ');
+  let sumPlayer=playerDice.reduce((a,b)=>a+faces.indexOf(b)+1,0);
+  let result=sumPlayer>=11?"Tài":"Xỉu";
+  let resText=`Bạn: ${sumPlayer} → ${result}. `;
+  if(result===playerChoice){money+=playerBet*2; resText+="Bạn thắng! ";} else {money-=playerBet; resText+="Bạn thua! ";}
+  document.getElementById('money').textContent=money;
+  document.getElementById('result').textContent=resText;
+};
+
+// -------------------------
+// Chọn Tài/Xỉu
+document.querySelectorAll('.betBtn').forEach(b=>b.onclick=()=>{
+  playerChoice=b.dataset.choice;
+  playerBet=parseInt(document.getElementById('betAmount').value);
+  document.getElementById('currentBet').textContent=`Cược ${playerBet} VNĐ cho ${playerChoice}`;
+});
+
+// -------------------------
+// Cổ phiếu
+const stockSelect=document.getElementById('stockSelect');
+stocks.forEach(s=>{let opt=document.createElement('option'); opt.value=s.name; opt.textContent=`${s.name} - ${s.value} VNĐ`; stockSelect.appendChild(opt);});
+function updateStocks(){
+  const stocksEl=document.getElementById('stocks'); stocksEl.innerHTML='';
+  stocks.forEach(s=>{
+    let div=document.createElement('div'); div.textContent=`${s.name}: ${s.value}`; 
+    div.className='stockItem '+(Math.random()>0.5?'up':'down'); stocksEl.appendChild(div);
+  });
+  let text=''; for(let s in playerStocks) text+=`${s}:${playerStocks[s]} | `; document.getElementById('stockInventory').textContent=text;
+}
+document.getElementById('buyStockBtn').onclick=()=>{
+  let s=stockSelect.value, amt=parseInt(document.getElementById('stockAmount').value);
+  if(isNaN(amt)||amt<=0){alert('Số lượng không hợp lệ'); return;}
+  let price=stocks.find(st=>st.name===s).value*amt;
+  if(price>money){alert('Không đủ VNĐ'); return;}
+  money-=price; playerStocks[s]=(playerStocks[s]||0)+amt;
+  document.getElementById('money').textContent=money; updateStocks();
+};
+document.getElementById('sellStockBtn').onclick=()=>{
+  let s=stockSelect.value, amt=parseInt(document.getElementById('stockAmount').value);
+  if(isNaN(amt)||amt<=0||amt>playerStocks[s]){alert('Không đủ cổ phiếu'); return;}
+  let price=stocks.find(st=>st.name===s).value*amt;
+  money+=price; playerStocks[s]-=amt;
+  document.getElementById('money').textContent=money; updateStocks();
+};
+updateStocks();
+
+// -------------------------
+// Vòng quay (demo)
+document.getElementById('spinBtn').onclick=()=>{alert('Vòng quay 1 lần, quà admin chọn!'); document.getElementById('spinResult').textContent='Đã quay xong!';};
+
+</script>
+
+</body>
+</html>
